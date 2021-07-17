@@ -3,6 +3,7 @@ pulpstone_bot=16-03-2018
 case $1 in
 "install")
   clear
+  opkg update && opkg install curl
   ls /usr/bin |grep curl &> /dev/null
     if [ $? != 0 ];then
         echo ""
