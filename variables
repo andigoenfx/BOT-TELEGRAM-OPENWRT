@@ -1,6 +1,6 @@
-key=''
+key='1931522918:AAFOUzBSqQcEz-FRbOdqnT3BNIGFihWh0fs'
 api="https://api.telegram.org/bot$key"
-my_chat_id=''
+my_chat_id='970148203'
 telegram_log_file=/tmp/telegram.log
 cmd_log_file=/tmp/cmd.log
 offset_file=/root/pulpstone_bot/offset
