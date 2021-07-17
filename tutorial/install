@@ -1,0 +1,259 @@
+#!/bin/sh
+pulpstone_bot=16-03-2018
+case $1 in
+"install")
+  clear
+  ls /usr/bin |grep curl &> /dev/null
+    if [ $? != 0 ];then
+        echo ""
+        echo "Install curl first!" 
+        echo ""
+        echo -e "Chaos Calmer : \nopkg update \nopkg install curl"
+        echo ""
+        echo -e "LEDE : \ndownload curl from https://goo.gl/G8zC7U \nupload curl_7.52.1-5 to /tmp [WinSCP] \ncd /tmp && opkg install *.ipk [PuTTY]"
+        echo ""
+        sleep 5
+        exit 0
+    fi
+  cp -f pulpstone_bot /usr/bin
+  chmod 755 /usr/bin/pulpstone_bot
+  echo ""
+  echo "Install Pulpstone Telegram BOT"
+  echo ""
+  sleep 3
+  echo "Cek koneksi ke server............ "
+  sleep 3
+  ping -c 5 pulpstone.pw
+    if [ $? != 0 ];then
+	  echo ""
+      echo "Koneksi ke server GAGAL ....... "
+	  exit 0
+    else 
+	  echo ""
+	  echo "Koneksi ke server OK ....... "
+    fi
+  
+  mkdir /root/pulpstone_bot/ &> /dev/null
+  mkdir /root/pulpstone_bot/functions &> /dev/null
+  
+cat > /etc/init.d/pulpstone_telegram_bot << END
+#!/bin/sh /etc/rc.common
+# Copyright (C) 2006 OpenWrt.org
+
+START=99
+start() {
+	cd /root/pulpstone_bot
+	./pulpstone_telegram_bot
+}
+stop() {
+	killall pulpstone_telegram_bot > /dev/null
+}
+restart() {
+	killall pulpstone_telegram_bot > /dev/null
+	cd /root/pulpstone_bot
+	./pulpstone_telegram_bot
+}
+END
+
+cat > /root/pulpstone_bot/pulpstone_bot.conf << END
+my_device=nonsbc
+##pilihan orangepizero / raspi / nonsbc##
+
+internet_source=3g-g3
+##silahkan samakan dengan interface sumber internet yg dipakai##
+##3g-3g ; wwan0 ; usb0 ; eth1 ; dsb##
+
+3g_info=no
+##pilihan yes / no##
+
+
+
+#####################################################################
+###                           KHUSUS GPIO                         ###
+###           ganti yes bila menggunakan gpio saklarku            ###
+### pastikan sudah dapat mengontrol gpio saklarku dengan sempurna ###
+###   more info saklarku : https://github.com/gojigeje/saklarku   ###
+###       Tutor gpio Pulpstone SBC : https://goo.gl/BxGBkK        ###
+
+use_gpio=no
+
+scriptPath=/www/gpio/script/
+
+scriptName=gpio.sh
+
+
+###     Sesuaikan dengan dir dan nama script dari saklarku        ###
+###             default tersedia hanya untuk 4 gpio               ###
+###             untuk penambahan bisa secara manual               ### 
+#####################################################################
+END
+
+
+  chmod 755 /etc/init.d/pulpstone_telegram_bot
+  cd /root/pulpstone_bot/functions
+  rm -f *.*
+  wget -q -A sh -r -l 1 -nd http://pulpstone.pw/gigi/pulpstone_bot/functions
+    if [ $? != 0 ];then
+        clear
+        echo ""
+        echo "Gagal mendownload script...!" 
+        echo ""
+        sleep 3
+        exit 0
+    fi
+  rm -f robots.txt
+  cd /root/pulpstone_bot/
+  wget http://pulpstone.pw/gigi/pulpstone_bot/variables &> /dev/null
+  wget http://pulpstone.pw/gigi/pulpstone_bot/pulpstone_telegram_bot &> /dev/null
+  chmod 755 -R pulpstone_telegram_bot functions/* 
+  clear 
+  echo "Install Pulpstone Telegram BOT Selesai"
+  sleep 3
+  echo ""
+  echo "Silahkan lakukan aktivasi BOT Telegram"
+  sleep 3
+  echo ""
+  echo "WinSCP > /root/pulpstone_bot/variables"
+  echo ""
+  echo "Isikan dengan key dari @BotFather dan my_chat_id dari @GiveChatId_Bot"
+  echo ""
+  echo "Jika sudah lanjutkan dengan perintah pulpstone_bot aktivasi"
+  echo ""
+  echo "Tutor : https://goo.gl/Jc1NZR"
+  echo ""
+  sleep 3
+  echo "Regrads,"
+  echo "fuadsalim@pulpstone [fb.com/fuad.salim.drg]"
+  echo ""
+  rm -f /tmp/pulpstone_bot
+  sleep 5
+  exit 0
+  ;;
+  
+"aktivasi")
+  clear
+  echo "Aktivasi Pulpstone Telegram BOT"
+  sleep 3
+  cat /root/pulpstone_bot/variables |grep YOUR 
+    if [ $? == 0 ];then
+	  clear
+	  echo ""
+	  echo "Aktivasi GAGAL!"
+	  echo ""
+      echo "Silhkan set variables terlebih dahulu"
+	  exit 0
+    else 
+	  clear
+	  /etc/init.d/pulpstone_telegram_bot enable
+      cd /root/pulpstone_bot/
+      ./pulpstone_telegram_bot
+	  echo ""
+	  echo "Aktivasi BERHASIL"
+	  echo ""
+      sleep 3
+      echo "Regrads,"
+      echo "fuadsalim@pulpstone [fb.com/fuad.salim.drg]"
+      echo ""
+      sleep 5
+      exit 0
+    fi
+  ;;
+
+"uninstall")
+  clear
+  echo "Uninstall Pulpstone Telegram BOT"
+  sleep 3
+  killall pulpstone_telegram_bot &> /dev/null
+  clear
+  echo "Backup variables and pulpstone_bot.conf"
+  sleep 3
+  mkdir /root/pulpstone_bot.backup/ &> /dev/null
+  cp -a /root/pulpstone_bot/variables "/root/pulpstone_bot.backup/variables-$(date +"%d-%m-%y %T")"
+  cp -a /root/pulpstone_bot/pulpstone_bot.conf "/root/pulpstone_bot.backup/pulpstone_bot.conf-$(date +"%d-%m-%y %T")"
+  echo ""
+  echo "Saved to /root/pulpstone_bot.backup"
+  sleep 3
+  rm -f /etc/init.d/pulpstone_telegram_bot
+  rm -rf /root/pulpstone_bot	#folder
+  rm -f /usr/bin/pulpstone_bot
+  sleep 3
+  clear 
+  echo "Uninstall Pulpstone Telegram BOT Selesai"
+  echo ""
+  sleep 3
+  echo "Regrads,"
+  echo "fuadsalim@pulpstone [fb.com/fuad.salim.drg]"
+  echo ""
+  sleep 5
+  exit 0
+  ;;
+
+"update")
+  clear
+  cd /root/pulpstone_bot
+    if [ $? != 0 ];then
+      echo "Folder pulpstone.bot tidak ditemukan"
+	  echo ""
+      echo "Update Pulpstone Telegram BOT GAGAL ......"
+	  exit 0
+    fi
+  echo "Update Pulpstone Telegram BOT"
+  echo ""
+  sleep 3
+  echo "Cek koneksi ke server............ "
+  sleep 3
+  ping -c 5 pulpstone.pw
+    if [ $? != 0 ];then
+	  echo ""
+      echo "Koneksi ke server GAGAL ....... "
+	  exit 0
+    else 
+	  echo ""
+	  echo "Koneksi ke server OK ....... "
+    fi
+  sleep 3
+  #backup
+  killall pulpstone_telegram_bot &> /dev/null
+  mkdir /root/pulpstone_bot.backup/ &> /dev/null
+  cp -a /root/pulpstone_bot/variables "/root/pulpstone_bot.backup/variables-$(date +"%d-%m-%y %T")" &> /dev/null
+  cp -a /root/pulpstone_bot/pulpstone_bot.conf "/root/pulpstone_bot.backup/pulpstone_bot.conf-$(date +"%d-%m-%y %T")" &> /dev/null
+  #add new bot 
+  wget -no-check-certificate https://goo.gl/Ti58s4 -O /usr/bin/pulpstone_bot
+  cd /root/pulpstone_bot/functions
+  rm -f *.*
+  wget -q -A sh -r -l 1 -nd http://pulpstone.pw/gigi/pulpstone_bot/functions
+    if [ $? != 0 ];then
+        clear
+        echo ""
+        echo "Gagal mendownload script...!" 
+        echo ""
+        sleep 3
+        exit 0
+    fi
+  rm -f robots.txt
+  cd /root/pulpstone_bot/
+  rm -f pulpstone_telegram_bot
+  wget http://pulpstone.pw/gigi/pulpstone_bot/pulpstone_telegram_bot &> /dev/null
+  chmod 755 -R pulpstone_telegram_bot functions/*
+  ./pulpstone_telegram_bot  
+  clear 
+  echo "Update Pulpstone Telegram BOT Selesai"
+  echo ""
+  sleep 3
+  echo "Regrads,"
+  echo "fuadsalim@pulpstone [fb.com/fuad.salim.drg]"
+  echo ""
+  sleep 5
+  exit 0
+  ;;
+
+  *)
+    clear
+	echo ""
+    echo -e "pulpstone_bot install"
+	echo -e "pulpstone_bot aktivasi"
+	echo -e "pulpstone_bot update"
+	echo -e "pulpstone_bot uninstall"
+	echo ""
+;;
+esac

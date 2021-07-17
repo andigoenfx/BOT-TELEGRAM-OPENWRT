@@ -1,0 +1,6 @@
+key=''
+api="https://api.telegram.org/bot$key"
+my_chat_id=''
+telegram_log_file=/tmp/telegram.log
+cmd_log_file=/tmp/cmd.log
+offset_file=/root/pulpstone_bot/offset

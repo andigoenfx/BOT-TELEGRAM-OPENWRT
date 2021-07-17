@@ -1,0 +1,305 @@
+#!/bin/sh
+pulpstone_telegram_bot=12-03-2018
+
+PATH='/usr/bin:/usr/sbin:/bin:/sbin'
+
+source /root/pulpstone_bot/variables
+
+curl -k -s -X POST $api/sendMessage -d chat_id=$my_chat_id -d parse_mode=Markdown --data-urlencode text="Pulpstone Telegram BOT Started" &> $telegram_log_file
+
+polling_timeout=30
+offset=0
+if [ -f "$offset_file" ] ; then
+	offset=$( cat $offset_file )
+else
+	echo $offset > $offset_file
+fi
+
+reply_to_msg () {
+	msg_id=$1
+	origin=$2
+	eval toReturn="$3"
+        curl -k -s -X POST $api/sendMessage -d reply_to_message_id=$msg_id -d chat_id=$origin -d parse_mode=HTML --data-urlencode text="$toReturn" &> $telegram_log_file
+}
+
+while [ true ]
+do
+	updates=$(curl -s -k -X GET ${api}/getUpdates?offset=${offset}&timeout=${polling_timeout})
+	status=$(jsonfilter -s "$updates" -e $.ok)
+	if [ $status = 'true' ]; then
+		update_ids=$(jsonfilter -s "$updates" -e $.result[*].update_id)
+		for update_id in $update_ids
+		do
+			offset=$((update_id+1))
+			echo $offset > $offset_file
+			origin=$(jsonfilter -s "$updates"  -e "$.result[@.update_id=$update_id].message.chat.id")
+			msg_id=$(jsonfilter -s "$updates"  -e "$.result[@.update_id=$update_id].message.message_id")
+			command=$(jsonfilter -s "$updates" -e "$.result[@.update_id=$update_id].message.text")
+			is_a_cmd=$(jsonfilter -s "$updates" -e "$.result[@.update_id=$update_id].message.entities[*].type")
+			query_ans=$(jsonfilter -s "$updates" -e "$.result[@.update_id=$update_id].callback_query.id")
+			origin_ans=$(jsonfilter -s "$updates"  -e "$.result[@.update_id=$update_id].callback_query.message.chat.id")
+			if [[ "$origin" != "$my_chat_id" && "$origin_ans" != "$my_chat_id" ]];then
+				curl -k -s -X POST $api/sendMessage -d reply_to_message_id=$msg_id -d chat_id=$origin -d parse_mode=Markdown --data-urlencode text="This is a Private bot." &> $telegram_log_file
+				curl -k -s -X POST $api/leaveChat -d chat_id=$origin  &> $telegram_log_file
+			else
+				if [ "$is_a_cmd" ==  "bot_command" ]; then
+					
+					cmd=$(echo $command |  awk '{print $1}')
+					DATE=`date +%Y-%m-%d_%H:%M:%S`
+					RETURN_TEXT=""
+					case "$cmd" in
+						("/reboot") 
+                            echo "[ $DATE ] reboot!" >> $cmd_log_file
+	                        RETURN_TEXT="Reboot router!"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}" && sleep 5 && reboot
+							;;
+						("/shutdown") 
+                            echo "[ $DATE ] shutdown!" >> $cmd_log_file
+	                        RETURN_TEXT="Shutdown router!"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}" && sleep 5 && halt
+							;;
+						("/restart_bot")
+							echo "[ $DATE ] restart bot!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh restart_bot)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+                                                ("/restart_xderm")
+							echo "[ $DATE ] restart xderm!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/xderm-trigger.sh)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;							
+						("/connected_clients")
+							echo "[ $DATE ] connected clients!" >> $cmd_log_file
+							clients=$("./functions/get_connected_clients.sh")
+							RETURN_TEXT="$(printf "Connected Clients: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+                            ;;
+						("/memory")
+							echo "[ $DATE ] memory!" >> $cmd_log_file
+							clients=$("./functions/memory_info.sh")
+							RETURN_TEXT="$(printf "Memory informations: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+                            ;;
+						("/temperature")
+							echo "[ $DATE ] temperature!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh temp)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/network_traffic")
+							echo "[ $DATE ] network_traffic!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh network_traffic)
+							RETURN_TEXT="$(printf "Network Traffic Informations: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/my_ip")
+							echo "[ $DATE ] my ip address!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh myip)
+                            RETURN_TEXT="$(printf "My IP Address: $clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/3g_info")
+							echo "[ $DATE ] 3g info!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh 3g_info)
+                            RETURN_TEXT="$(printf "3G/4G Informations: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/bot_go_public")
+							echo "[ $DATE ] bot go public!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh bot_go_public)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/bot_go_private")
+							echo "[ $DATE ] bot go private!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh bot_go_private)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/bot_status")
+							echo "[ $DATE ] bot status!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh bot_status)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/bot")
+							echo "[ $DATE ] bot list!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh bot)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;								
+						("/transmission")
+							echo "[ $DATE ] torrent!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh transmission)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;	
+						("/transmission_list")
+							echo "[ $DATE ] torrent list!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh transmission_list)
+                            RETURN_TEXT="$(printf "List Torrent Transmission: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/transmission_statistics")
+							echo "[ $DATE ] torrent statistics!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh transmission_statistics)
+                            RETURN_TEXT="$(printf "Statistics Torrent Transmission: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;	
+						("/transmission_active")
+							echo "[ $DATE ] torrent active!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh transmission_active)
+                            RETURN_TEXT="$(printf "Active Torrent Transmission: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;							
+						("/mpd")
+							echo "[ $DATE ] mpd list!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_play")
+							echo "[ $DATE ] mpd play!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_play)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_stop")
+							echo "[ $DATE ] mpd stop!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_stop)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_current")
+							echo "[ $DATE ] mpd current!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_current)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_vol_up")
+							echo "[ $DATE ] mpd volume up +5!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_vol_up)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_vol_down")
+							echo "[ $DATE ] mpd volume down -5!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_vol_down)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_next")
+							echo "[ $DATE ] mpd next!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_next)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/mpd_prev")
+							echo "[ $DATE ] mpd previous!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_mpd.sh mpd_prev)
+                            RETURN_TEXT="$(printf "Music Player Daemon: \n$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/gpio")
+							echo "[ $DATE ] gpio!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio)
+							RETURN_TEXT="$(printf "$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;							
+						("/gpio_A_ON")
+							echo "[ $DATE ] gpio_A_ON!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_A_ON)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/gpio_A_OFF")
+							echo "[ $DATE ] gpio_A_OFF!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_A_OFF)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;	
+						("/gpio_B_ON")
+							echo "[ $DATE ] gpio_B_ON!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_B_ON)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/gpio_B_OFF")
+							echo "[ $DATE ] gpio_A_OFF!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_B_OFF)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;			
+						("/gpio_C_ON")
+							echo "[ $DATE ] gpio_C_ON!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_C_ON)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/gpio_C_OFF")
+							echo "[ $DATE ] gpio_C_OFF!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_C_OFF)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;		
+						("/gpio_D_ON")
+							echo "[ $DATE ] gpio_D_ON!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_D_ON)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;							
+						("/gpio_D_OFF")
+							echo "[ $DATE ] gpio_D_OFF!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_D_OFF)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/gpio_status")
+							echo "[ $DATE ] gpio_status!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_gpio.sh gpio_status)
+							RETURN_TEXT="$(printf "IoT: \n$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						("/about")
+							echo "[ $DATE ] about pulpstone telegram bot!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh about)
+							RETURN_TEXT="$(printf "$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;	
+						("/script_version")
+							echo "[ $DATE ] script version!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh script_version)
+                            RETURN_TEXT="$(printf "$clients")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;			
+						("/update_script")
+							echo "[ $DATE ] update script!" >> $cmd_log_file
+							clients=$(/usr/bin/pulpstone_bot update)
+                            RETURN_TEXT="$(printf "Update Script")"
+                            reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;								
+						("/list")
+							echo "[ $DATE ] list all!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh list)
+							RETURN_TEXT="$(printf "$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+						(*)
+							echo "[ $DATE ] wrong command!" >> $cmd_log_file
+							clients=$(/root/pulpstone_bot/functions/pulpstone_general.sh)
+							RETURN_TEXT="$(printf "$clients")"
+							reply_to_msg $msg_id $origin "\${RETURN_TEXT}"
+							;;
+                    esac
+
+				else
+ 					curl -k -s -X POST $api/sendMessage -d reply_to_message_id=$msg_id -d chat_id=$origin -d parse_mode=Markdown --data-urlencode text="List of Commands : /list" &> $telegram_log_file
+				fi
+
+			fi
+		done
+	fi
+	sleep 1
+done&

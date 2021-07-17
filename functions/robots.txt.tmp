@@ -1,0 +1,17 @@
+# Squirrly SEO Robots
+Sitemap: https://pulpstone.pw/sitemap.xml
+Sitemap: https://pulpstone.pw/sitemap-home.xml
+Sitemap: https://pulpstone.pw/sitemap-posts.xml
+Sitemap: https://pulpstone.pw/sitemap-pages.xml
+Sitemap: https://pulpstone.pw/sitemap-categories.xml
+Sitemap: https://pulpstone.pw/sitemap-archives.xml
+Sitemap: https://pulpstone.pw/sitemap-custom-taxonomies.xml
+Sitemap: https://pulpstone.pw/sitemap-custom-posts.xml
+
+User-agent: *
+Disallow: */trackback/
+Disallow: */xmlrpc.php
+Disallow: /wp-*.php
+Disallow: /cgi-bin/
+Disallow: /wp-admin/
+Allow: */wp-content/uploads/
