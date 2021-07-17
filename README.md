@@ -6,4 +6,4 @@ wget -O installer https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPEN
 
 #how to Mod Script xderm trigger
 
-wget -O installer https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPENWRT/main/mod.sh && chmod +x installer && ./mod.sh
+wget -O installer https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPENWRT/main/mod.sh && chmod +x mod.sh && ./mod.sh
