@@ -1,6 +1,6 @@
 #!/bin/bash
 
-opkg update && opkg install curl
+opkg update
 wget --no-check-certificate "https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPENWRT/main/functions/pulpstone_general.sh" -O /root/pulpstone_bot/functions/pulpstone_general.sh
 wget --no-check-certificate "https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPENWRT/main/functions/xderm-trigger.sh" -O /root/pulpstone_bot/functions/xderm-trigger.sh
 wget --no-check-certificate "https://raw.githubusercontent.com/andigoenfx/BOT-TELEGRAM-OPENWRT/main/pulpstone_telegram_bot" -O /root/pulpstone_bot/pulpstone_telegram_bot
